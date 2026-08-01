@@ -6,8 +6,8 @@
         </h1>
 
         <div class="space-x-6">
-            <a href="#" class="hover:text-yellow-300">Home</a>
-            <a href="#" class="hover:text-yellow-300">About</a>
+            <a href="{{ url('/') }}" class="hover:text-yellow-300">Home</a>
+            <a href="{{ url('/about') }}" class="hover:text-yellow-300">About</a>
             <a href="#" class="hover:text-yellow-300">Admissions</a>
             <a href="#" class="hover:text-yellow-300">Contact</a>
         </div>
