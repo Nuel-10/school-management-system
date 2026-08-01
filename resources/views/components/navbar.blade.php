@@ -8,8 +8,8 @@
         <div class="space-x-6">
             <a href="{{ url('/') }}" class="hover:text-yellow-300">Home</a>
             <a href="{{ url('/about') }}" class="hover:text-yellow-300">About</a>
-            <a href="#" class="hover:text-yellow-300">Admissions</a>
-            <a href="#" class="hover:text-yellow-300">Contact</a>
+            <a href="{{ url('/admissions') }}" class="hover:text-yellow-300">Admissions</a>
+            <a href="{{ url('/contact') }}" class="hover:text-yellow-300">Contact</a>
         </div>
 
     </div>

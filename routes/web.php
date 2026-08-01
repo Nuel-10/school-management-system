@@ -11,3 +11,6 @@ Route::get('/about', function () {
 Route::get('/admissions', function () {
     return view('pages.admissions');
 });
+Route::get('/contact', function () {
+    return view('pages.contact');
+});
