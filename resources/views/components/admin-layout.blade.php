@@ -1,3 +1,4 @@
+
 @props(['title' => 'Admin Dashboard'])
 
 <!DOCTYPE html>
@@ -13,25 +14,33 @@
 
 <body class="bg-gray-100 text-gray-800">
 
-    <div class="min-h-screen">
+    <div class="min-h-screen flex">
 
-        {{-- Admin Header --}}
-        <header class="bg-white shadow-sm">
-            <div class="flex items-center justify-between px-6 py-4">
-                <h1 class="text-xl font-bold">
-                    School Management System
-                </h1>
+        {{-- Admin Sidebar --}}
+        <x-sidebar />
 
-                <div class="text-sm text-gray-600">
-                    {{ Auth::user()->name }}
+        {{-- Main Admin Area --}}
+        <div class="flex-1 min-w-0">
+
+            {{-- Admin Header --}}
+            <header class="bg-white shadow-sm">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <h1 class="text-xl font-bold">
+                        School Management System
+                    </h1>
+
+                    <div class="text-sm text-gray-600">
+                        {{ Auth::user()->name }}
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
 
-        {{-- Main Content --}}
-        <main>
-            {{ $slot }}
-        </main>
+            {{-- Main Content --}}
+            <main class="p-6">
+                {{ $slot }}
+            </main>
+
+        </div>
 
     </div>
 

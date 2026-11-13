@@ -14,6 +14,9 @@ use Illuminate\Validation\ValidationException;
 
 class StudentPromotionController extends Controller
 {
+    /**
+     * Display the student promotion page.
+     */
     public function index(Request $request)
     {
         $schoolSections = SchoolSection::where('is_active', true)
@@ -74,6 +77,9 @@ class StudentPromotionController extends Controller
         ));
     }
 
+    /**
+     * Process promotion, repetition, or transfer decisions.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -88,7 +94,10 @@ class StudentPromotionController extends Controller
                 'exists:class_arms,id',
             ],
             'to_class_arm_id' => [
-                'required',
+                Rule::requiredIf(
+                    $request->input('decision') !== 'repeated'
+                ),
+                'nullable',
                 'integer',
                 'exists:class_arms,id',
             ],
@@ -130,55 +139,62 @@ class StudentPromotionController extends Controller
             ->findOrFail($validated['from_class_arm_id']);
 
         if (
-            (int) $sourceArm->classLevel->school_section_id
-            !== (int) $validated['school_section_id']
+            !$sourceArm->classLevel
+            || !$sourceArm->classLevel->is_active
+            || (int) $sourceArm->classLevel->school_section_id
+                !== (int) $validated['school_section_id']
         ) {
             throw ValidationException::withMessages([
                 'from_class_arm_id' =>
-                    'The selected source class does not belong to this school section.',
+                    'The source class must be active and belong to the selected school section.',
             ]);
         }
 
-        $destinationArm = null;
-
-        if ($validated['decision'] !== 'repeated') {
+        if ($validated['decision'] === 'repeated') {
+            // Repeating students remain in their current class.
+            $validated['to_class_arm_id'] = $sourceArm->id;
+        } else {
             $destinationArm = ClassArm::with('classLevel')
                 ->where('is_active', true)
                 ->findOrFail($validated['to_class_arm_id']);
 
             if (
-                (int) $destinationArm->classLevel->school_section_id
-                !== (int) $validated['school_section_id']
+                !$destinationArm->classLevel
+                || !$destinationArm->classLevel->is_active
+                || (int) $destinationArm->classLevel->school_section_id
+                    !== (int) $validated['school_section_id']
             ) {
                 throw ValidationException::withMessages([
                     'to_class_arm_id' =>
-                        'The destination class must belong to the selected school section.',
+                        'The destination class must be active and belong to the selected school section.',
                 ]);
             }
 
-            if ($sourceArm->id === $destinationArm->id) {
+            if ((int) $sourceArm->id === (int) $destinationArm->id) {
                 throw ValidationException::withMessages([
                     'to_class_arm_id' =>
                         'Choose a different destination class.',
                 ]);
             }
-        } else {
-            // A repeating student stays in the same class.
-            $validated['to_class_arm_id'] = $sourceArm->id;
         }
 
         DB::transaction(function () use ($validated, $request) {
-            $students = Student::whereIn('id', $validated['student_ids'])
+            $studentIds = $validated['student_ids'];
+
+            $students = Student::whereIn('id', $studentIds)
+                ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
 
-            if ($students->count() !== count($validated['student_ids'])) {
+            if ($students->count() !== count($studentIds)) {
                 throw ValidationException::withMessages([
                     'student_ids' =>
                         'One or more selected students could not be found.',
                 ]);
             }
 
+            // Confirm that every student still belongs to the selected
+            // source class before recording or changing anything.
             foreach ($students as $student) {
                 if (
                     (int) $student->school_section_id
@@ -189,11 +205,32 @@ class StudentPromotionController extends Controller
                 ) {
                     throw ValidationException::withMessages([
                         'student_ids' =>
-                            'A selected student is no longer active in the chosen source class. Reload the list and try again.',
+                            'A selected student is no longer active in the chosen source class. Reload the student list and try again.',
                     ]);
                 }
             }
 
+            // Prevent a second decision for the same student in the
+            // same academic session, regardless of the term.
+            $existingPromotion = StudentPromotion::whereIn(
+                    'student_id',
+                    $studentIds
+                )
+                ->where(
+                    'academic_session',
+                    $validated['academic_session']
+                )
+                ->exists();
+
+            if ($existingPromotion) {
+                throw ValidationException::withMessages([
+                    'student_ids' =>
+                        'At least one selected student already has a decision recorded for this academic session. No changes were saved. Check the promotion history before continuing.',
+                ]);
+            }
+
+            // All checks have passed. Record each decision and then
+            // update class placement when required.
             foreach ($students as $student) {
                 StudentPromotion::create([
                     'student_id' => $student->id,
@@ -216,6 +253,9 @@ class StudentPromotionController extends Controller
 
         return redirect()
             ->route('promotions.index')
-            ->with('success', 'Student promotion records saved successfully.');
+            ->with(
+                'success',
+                'Student promotion decisions saved successfully.'
+            );
     }
 }

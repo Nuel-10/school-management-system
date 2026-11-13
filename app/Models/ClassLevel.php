@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ClassLevel extends Model
 {
@@ -36,4 +37,10 @@ class ClassLevel extends Model
     {
         return $this->hasMany(ClassArm::class);
     }
+    public function subjects(): BelongsToMany
+{
+    return $this->belongsToMany(Subject::class)
+        ->withPivot('is_compulsory')
+        ->withTimestamps();
+}
 }

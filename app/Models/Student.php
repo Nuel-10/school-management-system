@@ -29,27 +29,23 @@ class Student extends Model
         'date_of_birth' => 'date',
     ];
 
-    /**
-     * Get the school section the student belongs to.
-     */
     public function schoolSection(): BelongsTo
     {
         return $this->belongsTo(SchoolSection::class);
     }
 
-    /**
-     * Get the class arm assigned to the student.
-     */
     public function classArm(): BelongsTo
     {
         return $this->belongsTo(ClassArm::class);
     }
 
-    /**
-     * Get the student's promotion history.
-     */
     public function promotions(): HasMany
     {
         return $this->hasMany(StudentPromotion::class);
+    }
+
+    public function results(): HasMany
+    {
+        return $this->hasMany(StudentResult::class);
     }
 }
